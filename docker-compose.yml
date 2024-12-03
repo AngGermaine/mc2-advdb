@@ -1,0 +1,82 @@
+version: '3.4'
+x-postgres-common:
+  &postgres-common
+  image: postgres:17
+  user: postgres
+  restart: always
+  healthcheck:
+    test: 'pg_isready -U postgres --dbname=games'
+    interval: 10s
+    timeout: 5s
+    retries: 5
+
+services:
+  web:
+    build: ./services/web
+    command: python manage.py run -h 0.0.0.0
+    volumes:
+      - ./services/web/:/usr/src/app/
+    ports:
+      - 5001:5000
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+      - db2
+      - db3
+
+  db:
+    <<: *postgres-common
+    container_name: db
+    volumes:
+      - ./postgres-1/pgdata:/data
+      - ./postgres-1/config:/config
+      - ./postgres-1/archive:/var/lib/postgresql/archive
+      - ./postgres-1/postgres-init-scripts:/docker-entrypoint-initdb.d        
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=games
+      - PGDATA = "/data"
+    command: postgres -c 'config_file=/config/postgresql.conf'
+    
+
+  db2:
+    <<: *postgres-common
+    container_name: db2
+    volumes:
+      - ./postgres-2/pgdata:/data
+      - ./postgres-2/config:/config
+      - ./postgres-2/archive:/var/lib/postgresql/archive
+
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=games
+      - PGDATA = "/data"
+      - NODE_TYPE=node2
+      - PRIMARY_CONNINFO= host=db port=5432 user=replicationUser password=replication sslmode=disable
+    ports:
+      - 5433:5432
+    command: postgres -c 'config_file=/config/postgresql.conf'
+
+
+  db3:
+    <<: *postgres-common
+    container_name: db3
+    volumes:
+      - ./postgres-3/pgdata:/data
+      - ./postgres-3/config:/config
+      - ./postgres-3/archive:/var/lib/postgresql/archive
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=games
+      - PGDATA = "/data"
+      - NODE_TYPE=node3
+      - PRIMARY_CONNINFO= host=db port=5432 user=replicationUser password=replication sslmode=disable
+    ports:
+      - 5434:5432
+    command: postgres -c 'config_file=/config/postgresql.conf'
+
+
