@@ -28,7 +28,7 @@ def get_db_connection(db_type="master"):
 @app_routes.route("/", methods=["GET"])
 def index():
     # Get the database type from the query parameter (or default to "master")
-    db_type = request.args.get("db", "master")
+    db_type = request.args.get("db_type", "master")
     
     # Pagination setup
     page = request.args.get("page", 1, type=int)
